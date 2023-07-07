@@ -10,10 +10,11 @@ export class MyRoom extends Room<MyRoomState> {
     
     console.log("room", this.roomId, "creating...");
 
-    this.onMessage("type", (client, message) => {
-      //
-      // handle "type" message
-      //
+    this.onMessage("updatePosition", (client, data) => {
+      const player = this.state.players.get(client.sessionId);
+      player.x = data.x;
+      player.y = data.y;
+      player.z = data.z;
     });
   }
 

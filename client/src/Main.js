@@ -103,15 +103,28 @@ var buildScene = async function(scene){
                                         }
                                     break;
                                 }
+
+                                room.send("updatePosition",{
+                                        x: player.x,
+                                        y: player.y,
+                                        z: player.z,
+
+                                })
+
                             });
                 }
+
+                player.onChange(function(){
+                        playerEntities[sessionId].position.set(player.x,player.y,player.z);
+
+                });
 
 
                 
                        
         });
 
-        room.state.players.onRemove((player, sessionId)=>{
+        room.state.players.onRemove(function(player, sessionId){
                 console.log(sessionId + " Left!");
                 playerEntities[sessionId].dispose();
                 delete playerEntities[sessionId];
