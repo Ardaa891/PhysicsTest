@@ -58,6 +58,8 @@ advancedTexture.addControl(loadingText);
 
 
 
+    var playerEntities = {};
+    var playerNextPosition = {};
 
 
 var buildScene = async function(scene){
@@ -69,8 +71,6 @@ var buildScene = async function(scene){
         loadingText.text = "Connection established!";
         console.log("Connected to roomId: " + room.roomId);
 
-        var playerEntities = {};
-        var playerNextPosition = {};
     
         room.state.players.onAdd(function(player, sessionId){
                 isLocalPlayer = sessionId === room.sessionId;
@@ -101,13 +101,14 @@ var buildScene = async function(scene){
                                                 _player.position.z -= 0.5;
                                             break
                                         }
-                                    break;
+                                    break;                                   
                                 }
+                                
 
                                 room.send("updatePosition",{
-                                        x: player.x,
-                                        y: player.y,
-                                        z: player.z,
+                                        x: _player.position.x,
+                                        y: _player.position.y,
+                                        z: _player.position.z,
 
                                 })
 
@@ -116,7 +117,9 @@ var buildScene = async function(scene){
 
                 player.onChange(function(){
                         playerEntities[sessionId].position.set(player.x,player.y,player.z);
+                        //var targetPosition = player.clone();
 
+                        //playerNextPosition[sessionId] = targetPosition;
                 });
 
 
@@ -137,7 +140,15 @@ var buildScene = async function(scene){
      
 }
 
-
+scene.registerBeforeRender(() => {
+        for (let sessionId in playerEntities) {
+                console.log(sessionId);
+            var entity = playerEntities[sessionId];
+            //var targetPosition = playerNextPosition[sessionId];
+            //console.log(targetPosition);
+            //entity.position = BABYLON.Vector3.Lerp(entity.position, targetPosition, 0.05);
+        }
+    });
 
 
 engine.runRenderLoop(function () {
