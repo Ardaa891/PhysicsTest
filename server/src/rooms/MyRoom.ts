@@ -23,7 +23,7 @@ export class MyRoom extends Room<MyRoomState> {
 
     
         player.x = -(20) + (Math.random() * 40);
-        player.y = 2;
+        player.y = 2;//nice
         player.z = -(20) + (Math.random() * 40);
 
         this.state.players.set(client.sessionId, player);
