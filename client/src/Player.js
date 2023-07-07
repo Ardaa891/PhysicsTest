@@ -1,7 +1,11 @@
+
+
 export class Player{
 
-    constructor(scene, position = new BABYLON.Vector3(0,0,0), rotation = new BABYLON.Quaternion()){
-        console.log(position);
+    constructor(localName,scene, position, rotation = new BABYLON.Quaternion()){
+        //console.log(position);
+        //console.log(localName);
+        this.localName = localName;
         this.scene = scene;
         this.engine = scene.getEngine();
         this.position = position;
@@ -9,20 +13,21 @@ export class Player{
         this.speed = 0.05;
         this.mesh = null;
         this.init();
-
+        //dkfjslkfj
     }
 
-    init(){
+    init(localName){
         
-        this.mesh = this.createPlayer(this.position);
+        this.mesh = this.createPlayer(localName);
         return this.mesh;
     }
 
-    createPlayer(){
-        var box = new BABYLON.MeshBuilder.CreateBox("box", {width:2, depth:2, height:2}, this.scene);
-        box.position.set(0,0,0);
+    createPlayer(localName){
+        var box = new BABYLON.MeshBuilder.CreateBox(localName, {width:2, depth:2, height:2}, this.scene);
+
+        //const randomValue = -(20/2) + (Math.random() * 20);
+        box.position = this.position;
         box.rotation.set(0,0,0);
-        box.position.y += 1;
 
         this. scene.onKeyboardObservable.add((kbInfo) => {
             switch (kbInfo.type) {
