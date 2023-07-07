@@ -23,7 +23,10 @@ const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0, 1, 0)
 
 scene.clearColor = new BABYLON.Color3(0,0,0.2);
 
-var localPlayer = null;
+var _player = null;
+var isLocalPlayer;
+
+
 
 const groundRadius = 45;
 const ground = BABYLON.MeshBuilder.CreateDisc('ground',{radius: groundRadius, tesselation:64},scene);
@@ -70,10 +73,42 @@ var buildScene = async function(scene){
         var playerNextPosition = {};
     
         room.state.players.onAdd(function(player, sessionId){
-                localPlayer = new Player(`player-${sessionId}`,scene, new BABYLON.Quaternion(1,1,1));
-                localPlayer.position.set(player.x,player.y,player.z);
-                playerEntities[sessionId] = localPlayer;
-                console.log(`player-${sessionId}` + " Joined!");         
+                isLocalPlayer = sessionId === room.sessionId;
+                _player = new Player(`player-${sessionId}`,scene, new BABYLON.Quaternion(1,1,1));
+                _player.position.set(player.x,player.y,player.z);
+                playerEntities[sessionId] = _player;
+                console.log(`player-${sessionId}` + " Joined! and instantiated at: " + _player.position);
+
+                if(isLocalPlayer){
+                        scene.onKeyboardObservable.add((kbInfo) => {
+                                switch (kbInfo.type) {
+                                    case BABYLON.KeyboardEventTypes.KEYDOWN:
+                                        switch (kbInfo.event.key) {
+                                            case "a":
+                                            case "A":
+                                                _player.position.x -= 0.5;
+                                            break
+                                            case "d":
+                                            case "D":
+                                                _player.position.x += 0.5;
+                                            break
+                                            case "w":
+                                            case "W":
+                                                _player.position.z += 0.5;
+                                            break
+                                            case "s":
+                                            case "S":
+                                                _player.position.z -= 0.5;
+                                            break
+                                        }
+                                    break;
+                                }
+                            });
+                }
+
+
+                
+                       
         });
 
         room.state.players.onRemove((player, sessionId)=>{

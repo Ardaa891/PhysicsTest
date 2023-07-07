@@ -2,7 +2,7 @@
 
 export class Player{
 
-    constructor(localName,scene, position, rotation = new BABYLON.Quaternion()){
+    constructor(localName,scene, position, rotation = new BABYLON.Quaternion(),material){
         //console.log(position);
         //console.log(localName);
         this.localName = localName;
@@ -10,6 +10,7 @@ export class Player{
         this.engine = scene.getEngine();
         this.position = position;
         this.rotation = rotation;
+        this.material = material;
         this.speed = 0.05;
         this.mesh = null;
         this.init();
@@ -27,9 +28,10 @@ export class Player{
 
         //const randomValue = -(20/2) + (Math.random() * 20);
         box.position = this.position;
+        box.material = this.material;
         box.rotation.set(0,0,0);
 
-        this. scene.onKeyboardObservable.add((kbInfo) => {
+        /*this. scene.onKeyboardObservable.add((kbInfo) => {
             switch (kbInfo.type) {
                 case BABYLON.KeyboardEventTypes.KEYDOWN:
                     switch (kbInfo.event.key) {
@@ -52,7 +54,7 @@ export class Player{
                     }
                 break;
             }
-        });
+        });*/
 
         return box;
     }
