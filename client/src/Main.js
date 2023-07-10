@@ -1,4 +1,7 @@
+
 import { Player } from "./Player.js";
+
+
 
 
 var scriptUrl = "https://unpkg.com/colyseus.js@^0.15.0-preview.2/dist/colyseus.js";
@@ -10,6 +13,11 @@ document.head.appendChild(externalScript);
 const canvas = document.getElementById("renderCanvas"); // Get the canvas element
 const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
 const scene = new BABYLON.Scene(engine);
+
+await Ammo();
+
+
+scene.enablePhysics(new BABYLON.Vector3(0,-10,0), new BABYLON.AmmoJSPlugin(true,Ammo));
 
 var loadingText = new BABYLON.GUI.TextBlock("instructions");
 
@@ -35,9 +43,20 @@ groundMaterial.mainColor = new BABYLON.Color3(0.8, 0.8, 0.8);
 groundMaterial.lineColor = new BABYLON.Color3(0.8, 0.8, 0.8);
 ground.material = groundMaterial;
 
-ground.position.z = -1;
+ground.position.z = 0;
 
 ground.rotate(BABYLON.Axis.X, Math.PI / 2, BABYLON.Space.WORLD);
+
+ground.physicsImpostor = new BABYLON.PhysicsImpostor(ground, BABYLON.PhysicsImpostor.CylinderImpostor, {mass:0, friction:0.5, restitution:0.7},scene);
+
+var sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {size:2}, scene);
+sphere.position.y = 1;
+sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor,{mass: 1, restitution:0.9},scene);
+var sphereMat = new BABYLON.StandardMaterial("s-mat", scene);
+sphereMat.diffuseColor = new BABYLON.Color3(0,0,1);
+sphere.material = sphereMat;
+
+
 // Display "loading" text
 var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("textUI");
 
@@ -53,6 +72,7 @@ advancedTexture.addControl(loadingText);
     // build scene only after Colyseus SDK script is loaded.
     externalScript.onload = function() {
         // build the final scene
+        console.log("giriyoz mu");
         buildScene(scene);
     };
 
