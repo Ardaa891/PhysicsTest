@@ -4,11 +4,6 @@ import { Player } from "./Player.js";
 
 
 
-var scriptUrl = "https://unpkg.com/colyseus.js@^0.15.0-preview.2/dist/colyseus.js";
-var externalScript = document.createElement("script");
-externalScript.src = scriptUrl;
-document.head.appendChild(externalScript);
-
 
 const canvas = document.getElementById("renderCanvas"); // Get the canvas element
 const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
@@ -70,11 +65,8 @@ advancedTexture.addControl(loadingText);
 
 
     // build scene only after Colyseus SDK script is loaded.
-    externalScript.onload = function() {
-        // build the final scene
-        console.log("giriyoz mu");
-        buildScene(scene);
-    };
+
+    
 
 
 
@@ -159,7 +151,7 @@ var buildScene = async function(scene){
         });
      
 }
-
+buildScene(scene);
 scene.registerBeforeRender(() => {
         for (let sessionId in playerEntities) {
                 console.log(sessionId);
