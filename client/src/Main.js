@@ -4,6 +4,11 @@ import { Player } from "./Player.js";
 
 
 
+var scriptUrl = "https://unpkg.com/colyseus.js@^0.15.0-preview.2/dist/colyseus.js";
+var externalScript = document.createElement("script");
+externalScript.src = scriptUrl;
+document.head.appendChild(externalScript);
+
 
 const canvas = document.getElementById("renderCanvas"); // Get the canvas element
 const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
@@ -65,8 +70,11 @@ advancedTexture.addControl(loadingText);
 
 
     // build scene only after Colyseus SDK script is loaded.
-
-    
+    externalScript.onload = function() {
+        // build the final scene
+        console.log("giriyoz mu");
+        buildScene(scene);
+    };
 
 
 
@@ -115,23 +123,28 @@ var buildScene = async function(scene){
                                         }
                                     break;                                   
                                 }
-                                
+
 
                                 room.send("updatePosition",{
-                                        x: _player.position.x,
-                                        y: _player.position.y,
-                                        z: _player.position.z,
-
-                                })
-
+                                    x: _player.position.x,
+                                    y: _player.position.y,
+                                    z: _player.position.z,
+                                
+                
                             });
+                        })
+
+
+
                 }
 
-                player.onChange(function(){
-                        playerEntities[sessionId].position.set(player.x,player.y,player.z);
-                        //var targetPosition = player.clone();
 
-                        //playerNextPosition[sessionId] = targetPosition;
+                playerNextPosition[sessionId] = _player.position.clone();
+
+                player.onChange(function(){
+                        playerEntities[sessionId].set(player.x,player.y,player.z);
+                        var targetPosition = _player.position.clone();
+                        playerNextPosition[sessionId] = targetPosition;
                 });
 
 
@@ -154,11 +167,12 @@ var buildScene = async function(scene){
 buildScene(scene);
 scene.registerBeforeRender(() => {
         for (let sessionId in playerEntities) {
-                console.log(sessionId);
-            var entity = playerEntities[sessionId];
-            //var targetPosition = playerNextPosition[sessionId];
+            //console.log(sessionId);
+            var targetPosition = playerNextPosition[sessionId];
             //console.log(targetPosition);
-            //entity.position = BABYLON.Vector3.Lerp(entity.position, targetPosition, 0.05);
+            //console.log(entity.position);
+           playerEntities[sessionId].position.set = BABYLON.Vector3.Lerp(playerEntities[sessionId].position, targetPosition, 0.05);
+            
         }
     });
 
