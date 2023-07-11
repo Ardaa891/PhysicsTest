@@ -47,10 +47,10 @@ ground.position.z = 0;
 
 ground.rotate(BABYLON.Axis.X, Math.PI / 2, BABYLON.Space.WORLD);
 
-ground.physicsImpostor = new BABYLON.PhysicsImpostor(ground, BABYLON.PhysicsImpostor.CylinderImpostor, {mass:0, friction:0.5, restitution:0.7},scene);
+ground.physicsImpostor = new BABYLON.PhysicsImpostor(ground, BABYLON.PhysicsImpostor.BoxImpostor, {mass:0, friction:0.5, restitution:0.7},scene);
 
 var sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {size:2}, scene);
-sphere.position.y = 1;
+sphere.position.y = 10;  
 sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor,{mass: 1, restitution:0.9},scene);
 var sphereMat = new BABYLON.StandardMaterial("s-mat", scene);
 sphereMat.diffuseColor = new BABYLON.Color3(0,0,1);
@@ -81,13 +81,13 @@ advancedTexture.addControl(loadingText);
     var playerEntities = {};
     var playerNextPosition = {};
 
-
+    var room;
 var buildScene = async function(scene){
 
         var colyseusSDK = new Colyseus.Client("ws://localhost:2567");
         loadingText.text = "Connecting with the server, please wait...";
 
-        var room = await colyseusSDK.joinOrCreate("my_room");
+        room = await colyseusSDK.joinOrCreate("my_room");
         loadingText.text = "Connection established!";
         console.log("Connected to roomId: " + room.roomId);
 
@@ -101,24 +101,25 @@ var buildScene = async function(scene){
 
                 if(isLocalPlayer){
                         scene.onKeyboardObservable.add((kbInfo) => {
+                            var currentPlayer = playerEntities[sessionId];
                                 switch (kbInfo.type) {
                                     case BABYLON.KeyboardEventTypes.KEYDOWN:
                                         switch (kbInfo.event.key) {
                                             case "a":
                                             case "A":
-                                                _player.position.x -= 0.5;
+                                                currentPlayer.mesh.position.x -= 0.5;
                                             break
                                             case "d":
                                             case "D":
-                                                _player.position.x += 0.5;
+                                                currentPlayer.mesh.position.x += 0.5;
                                             break
                                             case "w":
                                             case "W":
-                                                _player.position.z += 0.5;
+                                                currentPlayer.mesh.position.z += 0.5;
                                             break
                                             case "s":
                                             case "S":
-                                                _player.position.z -= 0.5;
+                                                currentPlayer.mesh.position.z -= 0.5;
                                             break
                                         }
                                     break;                                   
@@ -126,9 +127,9 @@ var buildScene = async function(scene){
 
 
                                 room.send("updatePosition",{
-                                    x: _player.position.x,
-                                    y: _player.position.y,
-                                    z: _player.position.z,
+                                    x: currentPlayer.mesh.position.x,
+                                    y: currentPlayer.mesh.position.y,
+                                    z: currentPlayer.mesh.position.z,
                                 
                 
                             });
@@ -139,12 +140,20 @@ var buildScene = async function(scene){
                 }
 
 
-                playerNextPosition[sessionId] = _player.position.clone();
+                playerNextPosition[sessionId] = _player.mesh.position.clone();
 
                 player.onChange(function(){
-                        playerEntities[sessionId].set(player.x,player.y,player.z);
-                        var targetPosition = _player.position.clone();
+                    isLocalPlayer = sessionId === room.sessionId;
+
+                    if(!isLocalPlayer)
+                    {
+                        
+                       // playerEntities[sessionId].position = new BABYLON.Vector3(player.x,player.y,player.z);
+                        playerEntities[sessionId].mesh.position = new BABYLON.Vector3(player.x,player.y,player.z);
+                        console.log(playerEntities[sessionId].position);
+                        var targetPosition = _player.mesh.position.clone();
                         playerNextPosition[sessionId] = targetPosition;
+                    }
                 });
 
 
@@ -154,6 +163,7 @@ var buildScene = async function(scene){
 
         room.state.players.onRemove(function(player, sessionId){
                 console.log(sessionId + " Left!");
+                playerEntities[sessionId].mesh.dispose();
                 playerEntities[sessionId].dispose();
                 delete playerEntities[sessionId];
                 delete playerNextPosition[sessionId]; 
@@ -166,14 +176,20 @@ var buildScene = async function(scene){
 }
 buildScene(scene);
 scene.registerBeforeRender(() => {
-        for (let sessionId in playerEntities) {
-            //console.log(sessionId);
-            var targetPosition = playerNextPosition[sessionId];
-            //console.log(targetPosition);
-            //console.log(entity.position);
-           playerEntities[sessionId].position.set = BABYLON.Vector3.Lerp(playerEntities[sessionId].position, targetPosition, 0.05);
+        // for (let sessionId in playerEntities) {
+        //     isLocalPlayer = sessionId === room.sessionId;
             
-        }
+        //     if(!isLocalPlayer)
+        //     {
+        //         var targetPosition = playerNextPosition[sessionId];
+        //         //console.log(targetPosition);
+        //         //console.log(entity.position);
+        //        playerEntities[sessionId].position = targetPosition;
+    
+        //     }
+            
+            
+        // }
     });
 
 
