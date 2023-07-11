@@ -14,6 +14,12 @@ export class Player{
         this.speed = 0.05;
         this.mesh = null;
         this.init();
+
+
+
+
+
+
         //dkfjslkfj
     }
 
@@ -23,38 +29,50 @@ export class Player{
         return this.mesh;
     }
 
+    attachControlToPlayer(player){
+
+        this.scene.onKeyboardObservable.add((kbInfo) => {
+            var currentPlayer = player
+                switch (kbInfo.type) {
+                    case BABYLON.KeyboardEventTypes.KEYDOWN:
+                        switch (kbInfo.event.key) {
+                            case "a":
+                            case "A":
+                                currentPlayer.mesh.position.x -= 0.005;
+                            break
+                            case "d":
+                            case "D":
+                                currentPlayer.mesh.position.x += 0.005;
+                            break
+                            case "w":
+                            case "W":
+                                currentPlayer.mesh.position.z += 0.005;
+                            break
+                            case "s":
+                            case "S":
+                                currentPlayer.mesh.position.z -= 0.005;
+                            break
+                        }
+                    break;                                   
+                }
+
+        })
+
+    }
+
+    
     createPlayer(localName){
+        
+        this.scene.enablePhysics(new BABYLON.Vector3(0,-20,0), new BABYLON.AmmoJSPlugin(true,Ammo));
+
+
         var box = new BABYLON.MeshBuilder.CreateBox(localName, {width:2, depth:2, height:2}, this.scene);
 
-        //const randomValue = -(20/2) + (Math.random() * 20);
         box.position = this.position;
         box.material = this.material;
         box.rotation.set(0,0,0);
 
-        /*this. scene.onKeyboardObservable.add((kbInfo) => {
-            switch (kbInfo.type) {
-                case BABYLON.KeyboardEventTypes.KEYDOWN:
-                    switch (kbInfo.event.key) {
-                        case "a":
-                        case "A":
-                            box.position.x -= 0.5;
-                        break
-                        case "d":
-                        case "D":
-                            box.position.x += 0.5;
-                        break
-                        case "w":
-                        case "W":
-                            box.position.z += 0.5;
-                        break
-                        case "s":
-                        case "S":
-                            box.position.z -= 0.5;
-                        break
-                    }
-                break;
-            }
-        });*/
+        box.physicsImpostor = new BABYLON.PhysicsImpostor(box, BABYLON.PhysicsImpostor.BoxImpostor, {mass:1, friction:0.5, restitution:0.7},this.scene);
 
         return box;
     }

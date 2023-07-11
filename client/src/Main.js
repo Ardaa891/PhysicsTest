@@ -17,7 +17,7 @@ const scene = new BABYLON.Scene(engine);
 await Ammo();
 
 
-scene.enablePhysics(new BABYLON.Vector3(0,-10,0), new BABYLON.AmmoJSPlugin(true,Ammo));
+scene.enablePhysics(new BABYLON.Vector3(0,-20,0), new BABYLON.AmmoJSPlugin(true,Ammo));
 
 var loadingText = new BABYLON.GUI.TextBlock("instructions");
 
@@ -135,6 +135,17 @@ var buildScene = async function(scene){
                             });
                         })
 
+                    //     var currentPlayer = playerEntities[sessionId];
+                    //     _player.attachControlToPlayer(currentPlayer);
+                    //     room.send("updatePosition",{
+                    //         x: currentPlayer.mesh.position.x,
+                    //         y: currentPlayer.mesh.position.y,
+                    //         z: currentPlayer.mesh.position.z,
+                    // });
+                    // console.log(currentPlayer.mesh.position);
+                    // console.log(currentPlayer.position);                        
+                         
+                        
 
 
                 }
@@ -179,16 +190,19 @@ scene.registerBeforeRender(() => {
         // for (let sessionId in playerEntities) {
         //     isLocalPlayer = sessionId === room.sessionId;
             
-        //     if(!isLocalPlayer)
+        //     if(isLocalPlayer)
         //     {
-        //         var targetPosition = playerNextPosition[sessionId];
-        //         //console.log(targetPosition);
-        //         //console.log(entity.position);
-        //        playerEntities[sessionId].position = targetPosition;
-    
+                
+        //                 var currentPlayer = playerEntities[sessionId];
+        //                 _player.attachControlToPlayer(currentPlayer);
+        //                 room.send("updatePosition",{
+        //                     x: currentPlayer.mesh.position.x,
+        //                     y: currentPlayer.mesh.position.y,
+        //                     z: currentPlayer.mesh.position.z,
+        //             });
         //     }
             
-            
+
         // }
     });
 
