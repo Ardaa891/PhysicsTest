@@ -31,8 +31,6 @@ const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0, 1, 0)
 
 scene.clearColor = new BABYLON.Color3(0,0,0.2);
 
-var _player = null;
-var isLocalPlayer;
 
 
 
@@ -93,58 +91,31 @@ var buildScene = async function(scene){
 
     
         room.state.players.onAdd(function(player, sessionId){
+            
+                var _player = null;
+                var isLocalPlayer;
                 isLocalPlayer = sessionId === room.sessionId;
-                _player = new Player(`player-${sessionId}`,scene, new BABYLON.Quaternion(1,1,1));
-                _player.position.set(player.x,player.y,player.z);
+                _player = new Player(`player-${sessionId}`,scene,new BABYLON.Vector3(player.x,player.y,player.z), new BABYLON.Quaternion(1,1,1));
+                //wa_player.position.set(player.x,player.y,player.z);
                 playerEntities[sessionId] = _player;
                 console.log(`player-${sessionId}` + " Joined! and instantiated at: " + _player.position);
 
                 if(isLocalPlayer){
-                        scene.onKeyboardObservable.add((kbInfo) => {
-                            var currentPlayer = playerEntities[sessionId];
-                                switch (kbInfo.type) {
-                                    case BABYLON.KeyboardEventTypes.KEYDOWN:
-                                        switch (kbInfo.event.key) {
-                                            case "a":
-                                            case "A":
-                                                currentPlayer.mesh.position.x -= 0.5;
-                                            break
-                                            case "d":
-                                            case "D":
-                                                currentPlayer.mesh.position.x += 0.5;
-                                            break
-                                            case "w":
-                                            case "W":
-                                                currentPlayer.mesh.position.z += 0.5;
-                                            break
-                                            case "s":
-                                            case "S":
-                                                currentPlayer.mesh.position.z -= 0.5;
-                                            break
-                                        }
-                                    break;                                   
-                                }
-
-
-                                room.send("updatePosition",{
-                                    x: currentPlayer.mesh.position.x,
-                                    y: currentPlayer.mesh.position.y,
-                                    z: currentPlayer.mesh.position.z,
-                                
-                
-                            });
-                        })
-
-                    //     var currentPlayer = playerEntities[sessionId];
-                    //     _player.attachControlToPlayer(currentPlayer);
-                    //     room.send("updatePosition",{
-                    //         x: currentPlayer.mesh.position.x,
-                    //         y: currentPlayer.mesh.position.y,
-                    //         z: currentPlayer.mesh.position.z,
-                    // });
-                    // console.log(currentPlayer.mesh.position);
-                    // console.log(currentPlayer.position);                        
-                         
+                    var currentPlayer = playerEntities[sessionId];
+                    currentPlayer.attachControlToPlayer(currentPlayer);
+                    console.log("starting updates for " +sessionId);
+                    setInterval(()=>{ room.send("updatePosition",{
+                        x: _player.mesh.position.x,
+                        y: _player.mesh.position.y,
+                        z: _player.mesh.position.z,
+                        rx: _player.mesh.rotation.x,
+                        ry: _player.mesh.rotation.y,
+                        rz: _player.mesh.rotation.z,
+                        rw: _player.mesh.rotation.w,
+                    
+    
+                });}, 10);
+                       
                         
 
 
@@ -155,15 +126,16 @@ var buildScene = async function(scene){
 
                 player.onChange(function(){
                     isLocalPlayer = sessionId === room.sessionId;
-
+                   
                     if(!isLocalPlayer)
                     {
                         
                        // playerEntities[sessionId].position = new BABYLON.Vector3(player.x,player.y,player.z);
                         playerEntities[sessionId].mesh.position = new BABYLON.Vector3(player.x,player.y,player.z);
-                        console.log(playerEntities[sessionId].position);
+                       // console.log(playerEntities[sessionId].position);
                         var targetPosition = _player.mesh.position.clone();
                         playerNextPosition[sessionId] = targetPosition;
+                        
                     }
                 });
 
@@ -187,23 +159,7 @@ var buildScene = async function(scene){
 }
 buildScene(scene);
 scene.registerBeforeRender(() => {
-        // for (let sessionId in playerEntities) {
-        //     isLocalPlayer = sessionId === room.sessionId;
-            
-        //     if(isLocalPlayer)
-        //     {
-                
-        //                 var currentPlayer = playerEntities[sessionId];
-        //                 _player.attachControlToPlayer(currentPlayer);
-        //                 room.send("updatePosition",{
-        //                     x: currentPlayer.mesh.position.x,
-        //                     y: currentPlayer.mesh.position.y,
-        //                     z: currentPlayer.mesh.position.z,
-        //             });
-        //     }
-            
 
-        // }
     });
 
 
