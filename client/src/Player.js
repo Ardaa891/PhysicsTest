@@ -13,6 +13,16 @@ export class Player{
         this.material = material;
         this.speed = 0.05;
         this.mesh = null;
+        this.damping = 0.99;  // adjust as needed
+        this.scene.registerBeforeRender(() => {
+            if (this.mesh && this.mesh.physicsImpostor) {
+                let velocity = this.mesh.physicsImpostor.getLinearVelocity();
+                if (velocity) {
+                    velocity.scaleInPlace(this.damping);
+                    this.mesh.physicsImpostor.setLinearVelocity(velocity);
+                }
+            }
+        });
         this.init();
 
 
@@ -26,39 +36,41 @@ export class Player{
     init(localName){
         
         this.mesh = this.createPlayer(localName);
+        
         return this.mesh;
     }
 
     attachControlToPlayer(player){
-
         this.scene.onKeyboardObservable.add((kbInfo) => {
             var currentPlayer = player
-                switch (kbInfo.type) {
-                    case BABYLON.KeyboardEventTypes.KEYDOWN:
-                        switch (kbInfo.event.key) {
-                            case "a":
-                            case "A":
-                                currentPlayer.mesh.position.x -= 0.005;
+            switch (kbInfo.type) {
+                case BABYLON.KeyboardEventTypes.KEYDOWN:
+                    let impulse;
+                    switch (kbInfo.event.key) {
+                        case "a":
+                        case "A":
+                            impulse = new BABYLON.Vector3(-1, 0, 0);
                             break
-                            case "d":
-                            case "D":
-                                currentPlayer.mesh.position.x += 0.005;
+                        case "d":
+                        case "D":
+                            impulse = new BABYLON.Vector3(1, 0, 0);
                             break
-                            case "w":
-                            case "W":
-                                currentPlayer.mesh.position.z += 0.005;
+                        case "w":
+                        case "W":
+                            impulse = new BABYLON.Vector3(0, 0, 1);
                             break
-                            case "s":
-                            case "S":
-                                currentPlayer.mesh.position.z -= 0.005;
+                        case "s":
+                        case "S":
+                            impulse = new BABYLON.Vector3(0, 0, -1);
                             break
-                        }
+                    }
+                    currentPlayer.mesh.physicsImpostor.applyImpulse(impulse, currentPlayer.mesh.getAbsolutePosition());
                     break;                                   
-                }
-
+            }
+            
         })
-
     }
+    
 
     
     createPlayer(localName){
