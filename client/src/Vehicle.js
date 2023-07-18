@@ -1,5 +1,6 @@
 export class Vehicle {
-    constructor(sessionId, scene, position, rotation, room,engine) {
+    constructor(sessionId, scene, position, rotation, room,engine, isLocalPlayer) {
+        this.isLocalPlayer=isLocalPlayer;
         this.engine = engine;
         this.scene = scene;
         this.position=position;
@@ -33,8 +34,8 @@ export class Vehicle {
         this.suspensionRestLength = 0.6;
         this.rollInfluence = 0.0;
 
-        this.steeringIncrement = .01;
-        this.steeringClamp = 0.2;
+        this.steeringIncrement = .5;
+        this.steeringClamp = 1;
         this.maxEngineForce = 500;
         this.maxBreakingForce = 10;
         this.incEngine = 10.0;
@@ -55,7 +56,8 @@ export class Vehicle {
 
         this.wheelDirectionCS0 = new Ammo.btVector3(0, -1, 0);
         this.wheelAxleCS = new Ammo.btVector3(-1, 0, 0);
-  
+        this.tuning = new Ammo.btVehicleTuning();
+
         this.redMaterial = new BABYLON.StandardMaterial("RedMaterial", this.scene);
         this.redMaterial.diffuseColor = new BABYLON.Color3(0.8, 0.4, 0.5);
         this.redMaterial.emissiveColor = new BABYLON.Color3(0.8, 0.4, 0.5);
@@ -73,12 +75,14 @@ export class Vehicle {
         this.blackMaterial.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1);
         this.keyup = this.keyup.bind(this);
         this.keydown = this.keydown.bind(this);
+        this.updateVehicle = this.updateVehicle.bind(this);
 
         this.createChassis();   
         this.createVehicle();
         this.vehicleReady = true;
         this.scene.registerBeforeRender(() => {
             this.updateVehicle();
+            return this.scene;
         });
         }
     attachControl() {
@@ -91,6 +95,7 @@ export class Vehicle {
     keyup(e) {
         
         if (this.keysActions[e.code]) {
+            console.log(e.code);
             this.actions[this.keysActions[e.code]] = false;
         }
     }
@@ -104,6 +109,7 @@ export class Vehicle {
     createChassis() {
         var mesh = new BABYLON.MeshBuilder.CreateBox("box", { width: this.chassisWidth, depth: this.chassisLength, height: this.chassisHeight }, this.scene);
         mesh.rotationQuaternion = new BABYLON.Quaternion();
+        console.log(this.position);
         mesh.position=this.position;
         mesh.material = this.greenMaterial;
 
@@ -143,11 +149,11 @@ export class Vehicle {
     };
     createVehicle() {
         var physicsWorld = this.scene.getPhysicsEngine().getPhysicsPlugin().world;
-    
+
         var geometry = new Ammo.btBoxShape(new Ammo.btVector3(this.chassisWidth * .5, this.chassisHeight * .5, this.chassisLength * .5));
         var transform = new Ammo.btTransform();
         transform.setIdentity();
-        transform.setOrigin(this.position);
+        transform.setOrigin(new Ammo.btVector3(this.position.x, this.position.y, this.position.z));
         var motionState = new Ammo.btDefaultMotionState(transform);
         var localInertia = new Ammo.btVector3(0, 0, 0);
         geometry.calculateLocalInertia(this.massVehicle, localInertia);
@@ -165,10 +171,10 @@ export class Vehicle {
         physicsWorld.addRigidBody(body);
     
 
-        var tuning = new Ammo.btVehicleTuning();
         var rayCaster = new Ammo.btDefaultVehicleRaycaster(physicsWorld);
-        this.vehicle = new Ammo.btRaycastVehicle(tuning, body, rayCaster);
+        this.vehicle = new Ammo.btRaycastVehicle(this.tuning, body, rayCaster);
         this.vehicle.setCoordinateSystem(0, 1, 2);
+        
         physicsWorld.addAction(this.vehicle);
     
         var trans = this.vehicle.getChassisWorldTransform();
@@ -187,6 +193,7 @@ export class Vehicle {
     }
 
     updateVehicle() {
+        if(!this.isLocalPlayer) return;
         // Update vehicle controls
         var dt = this.engine.getDeltaTime().toFixed() / 1000;
         
@@ -260,7 +267,7 @@ export class Vehicle {
             
             this.chassisMesh.position.set(p.x(), p.y(), p.z());
             this.chassisMesh.rotationQuaternion.set(q.x(), q.y(), q.z(), q.w());
-           // this.chassisMesh.rotate(BABYLON.Axis.X, Math.PI);
+            this.chassisMesh.rotate(BABYLON.Axis.X, Math.PI);
         }
     }
 

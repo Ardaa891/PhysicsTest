@@ -1,6 +1,6 @@
 import { Room, Client } from "@colyseus/core";
 import { MyRoomState } from "./schema/MyRoomState";
-import { Player } from "./schema/MyRoomState";
+import { Player, Wheel } from "./schema/MyRoomState";
 
 export class MyRoom extends Room<MyRoomState> {
   maxClients = 4;
@@ -11,6 +11,7 @@ export class MyRoom extends Room<MyRoomState> {
     console.log("room", this.roomId, "creating...");
 
     this.onMessage("updatePosition", (client, data) => {
+      //console.log(data);
       const player = this.state.players.get(client.sessionId);
       player.x = data.x;
       player.y = data.y;
@@ -19,6 +20,21 @@ export class MyRoom extends Room<MyRoomState> {
       player.ry = data.ry;
       player.rz = data.rz;      
       player.rw = data.rw;      
+      data.wheelPositions.forEach((wheelPos, index) => {
+        if (player.wheelPositions[index]) {
+          // Update existing wheel position
+          player.wheelPositions[index].x = wheelPos.x;
+          player.wheelPositions[index].y = wheelPos.y;
+          player.wheelPositions[index].z = wheelPos.z;
+        } else {
+          // Add new wheel position
+          const wheel = new Wheel();
+          wheel.x = wheelPos.x;
+          wheel.y = wheelPos.y;
+          wheel.z = wheelPos.z;
+          player.wheelPositions.push(wheel);
+        }
+      });
     });
   }
 
@@ -27,9 +43,9 @@ export class MyRoom extends Room<MyRoomState> {
     const player = new Player();
 
     
-        player.x = -(20) + (Math.random() * 40);
+        player.x = -(20) + (Math.random() * 20);
         player.y = 3;//nice
-        player.z = -(20) + (Math.random() * 40);
+        player.z = -(20) + (Math.random() * 20);
 
         this.state.players.set(client.sessionId, player);
   }
