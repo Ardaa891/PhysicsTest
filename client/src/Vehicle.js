@@ -1,15 +1,15 @@
 export class Vehicle {
-    constructor(sessionId, scene, position, rotation, room,engine, isLocalPlayer) {
-        this.isLocalPlayer=isLocalPlayer;
+    constructor(sessionId, scene, position, rotation, room, engine, isLocalPlayer) {
+        this.isLocalPlayer = isLocalPlayer;
         this.engine = engine;
         this.scene = scene;
-        this.position=position;
-        this.rotation=rotation;
+        this.position = position;
+        this.rotation = rotation;
         this.vehicle = null;
         this.chassisMesh = null;
         this.wheelMeshes = [];
         this.vehicleReady = false;
-
+        this.body = null;
         this.chassisWidth = 1.8;
         this.chassisHeight = .6;
         this.chassisLength = 4;
@@ -44,6 +44,10 @@ export class Vehicle {
         this.FRONT_RIGHT = 1;
         this.BACK_LEFT = 2;
         this.BACK_RIGHT = 3;
+        // Add these lines to the constructor
+        this.positionBuffer = [];
+        this.lastUpdate = Date.now();
+
 
         this.actions = { accelerate: false, brake: false, right: false, left: false };
 
@@ -61,15 +65,15 @@ export class Vehicle {
         this.redMaterial = new BABYLON.StandardMaterial("RedMaterial", this.scene);
         this.redMaterial.diffuseColor = new BABYLON.Color3(0.8, 0.4, 0.5);
         this.redMaterial.emissiveColor = new BABYLON.Color3(0.8, 0.4, 0.5);
-      
+
         this.blueMaterial = new BABYLON.StandardMaterial("RedMaterial", this.scene);
         this.blueMaterial.diffuseColor = new BABYLON.Color3(0.5, 0.4, 0.8);
         this.blueMaterial.emissiveColor = new BABYLON.Color3(0.5, 0.4, 0.8);
-      
+
         this.greenMaterial = new BABYLON.StandardMaterial("RedMaterial", this.scene);
         this.greenMaterial.diffuseColor = new BABYLON.Color3(0.5, 0.8, 0.5);
         this.greenMaterial.emissiveColor = new BABYLON.Color3(0.5, 0.8, 0.5);
-      
+
         this.blackMaterial = new BABYLON.StandardMaterial("RedMaterial", this.scene);
         this.blackMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.1);
         this.blackMaterial.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1);
@@ -77,40 +81,40 @@ export class Vehicle {
         this.keydown = this.keydown.bind(this);
         this.updateVehicle = this.updateVehicle.bind(this);
 
-        this.createChassis();   
+        this.createChassis();
         this.createVehicle();
         this.vehicleReady = true;
         this.scene.registerBeforeRender(() => {
             this.updateVehicle();
             return this.scene;
         });
-        }
+    }
     attachControl() {
         console.log("attaching controls to local player");
-       
+
         document.addEventListener('keyup', this.keyup);
         document.addEventListener('keydown', this.keydown);
-        
+
     }
     keyup(e) {
-        
+
         if (this.keysActions[e.code]) {
             console.log(e.code);
             this.actions[this.keysActions[e.code]] = false;
         }
     }
-    
+
     keydown(e) {
-        
+
         if (this.keysActions[e.code]) {
             this.actions[this.keysActions[e.code]] = true;
         }
-    }    
+    }
     createChassis() {
         var mesh = new BABYLON.MeshBuilder.CreateBox("box", { width: this.chassisWidth, depth: this.chassisLength, height: this.chassisHeight }, this.scene);
         mesh.rotationQuaternion = new BABYLON.Quaternion();
         console.log(this.position);
-        mesh.position=this.position;
+        mesh.position = this.position;
         mesh.material = this.greenMaterial;
 
         // var camera = new BABYLON.FollowCamera("FollowCam", new BABYLON.Vector3(0, 10, -10), this.scene);
@@ -125,7 +129,7 @@ export class Vehicle {
 
         this.chassisMesh = mesh;
     }
-    addWheel (isFront, pos, radius, width, index)  {
+    addWheel(isFront, pos, radius, width, index) {
         console.log("wheel added" + index);
         var wheelInfo = this.vehicle.addWheel(
             pos,
@@ -145,9 +149,10 @@ export class Vehicle {
         wheelInfo.set_m_rollInfluence(this.rollInfluence);
 
         this.wheelMeshes[index] = this.createWheelMesh(radius, width);
-        
+
     };
     createVehicle() {
+
         var physicsWorld = this.scene.getPhysicsEngine().getPhysicsPlugin().world;
 
         var geometry = new Ammo.btBoxShape(new Ammo.btVector3(this.chassisWidth * .5, this.chassisHeight * .5, this.chassisLength * .5));
@@ -157,32 +162,33 @@ export class Vehicle {
         var motionState = new Ammo.btDefaultMotionState(transform);
         var localInertia = new Ammo.btVector3(0, 0, 0);
         geometry.calculateLocalInertia(this.massVehicle, localInertia);
-    
-        var massOffset = new Ammo.btVector3(0, 0.4, 0);
+
+        var massOffset = new Ammo.btVector3(0, 0, 0);
         var transform2 = new Ammo.btTransform();
         transform2.setIdentity();
         transform2.setOrigin(massOffset);
         var compound = new Ammo.btCompoundShape();
         compound.addChildShape(transform2, geometry);
-    
-        var body = new Ammo.btRigidBody(new Ammo.btRigidBodyConstructionInfo(this.massVehicle, motionState, compound, localInertia));
-        body.setActivationState(4);
-    
-        physicsWorld.addRigidBody(body);
-    
+
+        this.body = new Ammo.btRigidBody(new Ammo.btRigidBodyConstructionInfo(this.massVehicle, motionState, compound, localInertia));
+        this.body.setActivationState(4);
+        //body.setCollisionFlags(body.getCollisionFlags() | BABYLON.CollisionFlags.CF_CUSTOM_MATERIAL_CALLBACK);
+
+        physicsWorld.addRigidBody(this.body);
+
 
         var rayCaster = new Ammo.btDefaultVehicleRaycaster(physicsWorld);
-        this.vehicle = new Ammo.btRaycastVehicle(this.tuning, body, rayCaster);
+        this.vehicle = new Ammo.btRaycastVehicle(this.tuning, this.body, rayCaster);
         this.vehicle.setCoordinateSystem(0, 1, 2);
-        
+
         physicsWorld.addAction(this.vehicle);
-    
+
         var trans = this.vehicle.getChassisWorldTransform();
-    
-        this.addWheel( true, new Ammo.btVector3(this.wheelHalfTrackFront, this.wheelAxisHeightFront, this.wheelAxisFrontPosition), this.wheelRadiusFront, this.wheelWidthFront, this.FRONT_LEFT);
-        this.addWheel( true, new Ammo.btVector3(-this.wheelHalfTrackFront, this.wheelAxisHeightFront, this.wheelAxisFrontPosition), this.wheelRadiusFront, this.wheelWidthFront, this.FRONT_RIGHT);
-        this.addWheel( false, new Ammo.btVector3(-this.wheelHalfTrackBack, this.wheelAxisHeightBack, this.wheelAxisPositionBack), this.wheelRadiusBack, this.wheelWidthBack, this.BACK_LEFT);
-        this.addWheel( false, new Ammo.btVector3(this.wheelHalfTrackBack, this.wheelAxisHeightBack, this.wheelAxisPositionBack), this.wheelRadiusBack, this.wheelWidthBack, this.BACK_RIGHT);
+
+        this.addWheel(true, new Ammo.btVector3(this.wheelHalfTrackFront, this.wheelAxisHeightFront, this.wheelAxisFrontPosition), this.wheelRadiusFront, this.wheelWidthFront, this.FRONT_LEFT);
+        this.addWheel(true, new Ammo.btVector3(-this.wheelHalfTrackFront, this.wheelAxisHeightFront, this.wheelAxisFrontPosition), this.wheelRadiusFront, this.wheelWidthFront, this.FRONT_RIGHT);
+        this.addWheel(false, new Ammo.btVector3(-this.wheelHalfTrackBack, this.wheelAxisHeightBack, this.wheelAxisPositionBack), this.wheelRadiusBack, this.wheelWidthBack, this.BACK_LEFT);
+        this.addWheel(false, new Ammo.btVector3(this.wheelHalfTrackBack, this.wheelAxisHeightBack, this.wheelAxisPositionBack), this.wheelRadiusBack, this.wheelWidthBack, this.BACK_RIGHT);
     }
 
     createWheelMesh(radius, width) {
@@ -193,27 +199,28 @@ export class Vehicle {
     }
 
     updateVehicle() {
-        if(!this.isLocalPlayer) return;
+        if (!this.isLocalPlayer) return;
+        var physicsWorld = this.scene.getPhysicsEngine().getPhysicsPlugin().world;
         // Update vehicle controls
         var dt = this.engine.getDeltaTime().toFixed() / 1000;
-        
+        physicsWorld.stepSimulation(dt, 1);
         if (this.vehicleReady) {
-        
-    
+
+
             var speed = this.vehicle.getCurrentSpeedKmHour();
-            var maxSteerVal = 0.2; 
+            var maxSteerVal = 0.2;
             var vehicleSteering = 0;
-     
+
             var breakingForce = 0;
             var engineForce = 0;
-            
+
             if (this.actions.acceleration) {
                 if (speed < -1) {
                     breakingForce = this.maxBreakingForce;
                 } else {
                     engineForce = this.maxEngineForce;
                 }
-    
+
             } else if (this.actions.braking) {
                 if (speed > 1) {
                     breakingForce = this.maxBreakingForce;
@@ -221,17 +228,17 @@ export class Vehicle {
                     engineForce = -this.maxEngineForce;
                 }
             }
-    
+
             if (this.actions.right) {
                 if (vehicleSteering < this.steeringClamp) {
                     vehicleSteering += this.steeringIncrement;
                 }
-    
+
             } else if (this.actions.left) {
                 if (vehicleSteering > -this.steeringClamp) {
                     vehicleSteering -= this.steeringIncrement;
                 }
-    
+
             } else {
                 vehicleSteering = 0;
             }
@@ -239,15 +246,15 @@ export class Vehicle {
             // console.log("braking force", breakingForce);
             this.vehicle.applyEngineForce(engineForce, this.FRONT_LEFT);
             this.vehicle.applyEngineForce(engineForce, this.FRONT_RIGHT);
-    
-            this.vehicle.setBrake(breakingForce/ 2, this.FRONT_LEFT);
+
+            this.vehicle.setBrake(breakingForce / 2, this.FRONT_LEFT);
             this.vehicle.setBrake(breakingForce / 2, this.FRONT_RIGHT);
             this.vehicle.setBrake(breakingForce, this.BACK_LEFT);
             this.vehicle.setBrake(breakingForce, this.BACK_RIGHT);
-    
+
             this.vehicle.setSteeringValue(vehicleSteering, this.FRONT_LEFT);
             this.vehicle.setSteeringValue(vehicleSteering, this.FRONT_RIGHT);
-    
+
             var tm, p, q, i;
             var n = this.vehicle.getNumWheels();
             for (i = 0; i < n; i++) {
@@ -255,20 +262,81 @@ export class Vehicle {
                 tm = this.vehicle.getWheelTransformWS(i);
                 p = tm.getOrigin();
                 q = tm.getRotation();
-                
+
                 this.wheelMeshes[i].position.set(p.x(), p.y(), p.z());
                 this.wheelMeshes[i].rotationQuaternion.set(q.x(), q.y(), q.z(), q.w());
                 this.wheelMeshes[i].rotate(BABYLON.Axis.Z, Math.PI / 2);
             }
-    
+
             tm = this.vehicle.getChassisWorldTransform();
             p = tm.getOrigin();
             q = tm.getRotation();
-            
+
             this.chassisMesh.position.set(p.x(), p.y(), p.z());
             this.chassisMesh.rotationQuaternion.set(q.x(), q.y(), q.z(), q.w());
             this.chassisMesh.rotate(BABYLON.Axis.X, Math.PI);
+            if (this.chassisMesh.position.y < -5 || this.chassisMesh.position.y > 20) {
+                this.respawn();
+            }
+
+            //this.body.getMotionState().setWorldTransform(tm);   
+            //this.body.updatePhysicsBodyPosition();
         }
     }
+    respawn() {
+        // New position
+        var newX = -(10) + (Math.random() * 20);
+        var newY = 3;
+        var newZ = -(10) + (Math.random() * 20);
+        
+        // Update physics body position
+        var transform = new Ammo.btTransform();
+        transform.setIdentity();
+        transform.setOrigin(new Ammo.btVector3(newX, newY, newZ));
+        this.body.setWorldTransform(transform);
+        this.body.activate(); // Activate the body to apply changes
+    
+        // Update chassisMesh position
+        this.chassisMesh.position.set(newX, newY, newZ);
+        this.chassisMesh.rotationQuaternion = new BABYLON.Quaternion();
+    
+        // Update each wheel position
+        var n = this.vehicle.getNumWheels();
+        for (var i = 0; i < n; i++) {
+            this.vehicle.updateWheelTransform(i, true);
+            var tm = this.vehicle.getWheelTransformWS(i);
+            var p = tm.getOrigin();
+            var q = tm.getRotation();
+            this.wheelMeshes[i].position.set(p.x(), p.y(), p.z());
+            this.wheelMeshes[i].rotationQuaternion.set(q.x(), q.y(), q.z(), q.w());
+            this.wheelMeshes[i].rotate(BABYLON.Axis.Z, Math.PI / 2);
+        }
+        this.body.setLinearVelocity(new Ammo.btVector3(0, 0, 0));
+        this.body.setAngularVelocity(new Ammo.btVector3(0, 0, 0));
+        this.actions = { accelerate: false, brake: false, right: false, left: false };
 
+    }
+    
+    dispose() {
+
+
+        if(this.isLocalPlayer) return;
+        // Remove vehicle from physics world
+        var physicsWorld = this.scene.getPhysicsEngine().getPhysicsPlugin().world;
+        physicsWorld.removeAction(this.vehicle);
+
+        // Dispose of Babylon.js meshes
+        this.chassisMesh.dispose();
+        this.wheelMeshes.forEach(mesh => mesh.dispose());
+
+        // // Delete Ammo.js objects
+        // Ammo.destroy(this.vehicle);
+        // Ammo.destroy(this.body);
+
+        // Nullify properties to aid garbage collection
+        this.chassisMesh = null;
+        this.wheelMeshes = null;
+        this.vehicle = null;
+        this.body = null;
+    }
 }
