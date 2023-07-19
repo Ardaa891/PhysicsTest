@@ -86,6 +86,8 @@ var playerNextRotation = {};
 var playerPrevPosition = {};
 var playerPrevRotation = {};
 var lastUpdateTime = {};
+var lastUpdateTimestamp = {};
+
 var updateInterval = 100;
 var room;
 var buildScene = async function (scene) {
@@ -105,11 +107,20 @@ var buildScene = async function (scene) {
         isLocalPlayer = sessionId === room.sessionId;
         //_player = new Player(sessionId,scene,new BABYLON.Vector3(player.x,player.y,player.z), new BABYLON.Quaternion(1,1,1), room);
         _player = new Vehicle(sessionId, scene, new BABYLON.Vector3(player.x, player.y, player.z), new BABYLON.Quaternion(1, 1, 1), room, engine, isLocalPlayer);
-        console.log(_player);
+        //console.log(_player);
         //wa_player.position.set(player.x,player.y,player.z);
         playerEntities[sessionId] = _player;
         console.log(`player-${sessionId}` + " Joined! and instantiated at: " + _player.chassisMesh.position);
-
+        playerNextPosition[sessionId] = new Array(4);
+        playerNextRotation[sessionId] = new Array(4);
+        playerPrevPosition[sessionId] = new Array(4);
+        playerPrevRotation[sessionId] = new Array(4);
+        for (let i = 0; i < _player.wheelMeshes.length; i++) {
+            playerNextPosition[sessionId][i] = _player.wheelMeshes[i].position.clone();
+            playerNextRotation[sessionId][i] = _player.wheelMeshes[i].rotationQuaternion.clone();
+            playerPrevPosition[sessionId][i] = _player.wheelMeshes[i].position.clone();
+            playerPrevRotation[sessionId][i] = _player.wheelMeshes[i].rotationQuaternion.clone();
+        }
         if (isLocalPlayer) {
             // window.addEventListener('keydown', _player.keydown);
             // window.addEventListener('keyup', _player.keyup);
@@ -151,45 +162,55 @@ var buildScene = async function (scene) {
 
             if (!isLocalPlayer) {
                 try {
-                    if(playerEntities[sessionId].body)
+                    if (playerEntities[sessionId].body)
 
-                playerPrevPosition[sessionId] = playerEntities[sessionId].chassisMesh.position.clone();
-                playerPrevRotation[sessionId] = playerEntities[sessionId].chassisMesh.rotationQuaternion.clone();
+                        playerPrevPosition[sessionId] = playerEntities[sessionId].chassisMesh.position.clone();
+                    playerPrevRotation[sessionId] = playerEntities[sessionId].chassisMesh.rotationQuaternion.clone();
 
-                // playerEntities[sessionId].position = new BABYLON.Vector3(player.x,player.y,player.z);
-                playerEntities[sessionId].chassisMesh.position = new BABYLON.Vector3(player.x, player.y, player.z);
-                playerEntities[sessionId].chassisMesh.rotationQuaternion = new BABYLON.Quaternion(player.rx, player.ry, player.rz, player.rw);
-                player.wheelPositions.forEach((wheelPos, index) => {
-                    playerEntities[sessionId].wheelMeshes[index].position = new BABYLON.Vector3(wheelPos.x, wheelPos.y, wheelPos.z);
-                    playerEntities[sessionId].wheelMeshes[index].rotationQuaternion = new BABYLON.Quaternion(wheelPos.rx, wheelPos.ry, wheelPos.rz, wheelPos.rw);
+                    // playerEntities[sessionId].position = new BABYLON.Vector3(player.x,player.y,player.z);
+                    // playerEntities[sessionId].chassisMesh.position = new BABYLON.Vector3(player.x, player.y, player.z);
+                    // playerEntities[sessionId].chassisMesh.rotationQuaternion = new BABYLON.Quaternion(player.rx, player.ry, player.rz, player.rw);
+                    playerNextPosition[sessionId] = new BABYLON.Vector3(player.x, player.y, player.z);
+                    playerNextRotation[sessionId] = new BABYLON.Quaternion(player.rx, player.ry, player.rz, player.rw);
 
-                });
-                let transform = new Ammo.btTransform();
-                //playerEntities[sessionId].body.getMotionState().getWorldTransform(transform);
+                    player.wheelPositions.forEach((wheelPos, index) => {
+                        if (playerEntities[sessionId].wheelMeshes[index]) {
+                            playerEntities[sessionId].wheelMeshes[index].position = new BABYLON.Vector3(wheelPos.x, wheelPos.y, wheelPos.z);
+                            playerEntities[sessionId].wheelMeshes[index].rotationQuaternion = new BABYLON.Quaternion(wheelPos.rx, wheelPos.ry, wheelPos.rz, wheelPos.rw);
+                            
+                            playerNextPosition[sessionId][index] = new BABYLON.Vector3(wheelPos.x, wheelPos.y, wheelPos.z);
+                            playerNextRotation[sessionId][index] = new BABYLON.Quaternion(wheelPos.rx, wheelPos.ry, wheelPos.rz, wheelPos.rw);
+                        }
 
-                // Update position
-                transform.setOrigin(new Ammo.btVector3(player.x, player.y, player.z));
+                    });
+                    let transform = new Ammo.btTransform();
+                    //playerEntities[sessionId].body.getMotionState().getWorldTransform(transform);
 
-                // Update rotation
-                let quaternion = new Ammo.btQuaternion(player.rx, player.ry, player.rz, player.rw);
-                transform.setRotation(quaternion);
+                    // Update position
+                    transform.setOrigin(new Ammo.btVector3(player.x, player.y, player.z));
 
-                // Update the body's motion state
-         
+                    // Update rotation
+                    let quaternion = new Ammo.btQuaternion(player.rx, player.ry, player.rz, player.rw);
+                    transform.setRotation(quaternion);
+
+                    // Update the body's motion state
+
                     playerEntities[sessionId].body.getMotionState().setWorldTransform(transform);
-          
-                playerEntities[sessionId].body.activate();
-                playerEntities[sessionId].body.setCollisionFlags(2);
-                //console.log(playerEntities[sessionId].position);
-                
-                playerNextPosition[sessionId] = _player.chassisMesh.position.clone();;
-                playerNextRotation[sessionId] = _player.chassisMesh.rotation.clone();;
 
-                lastUpdateTime[sessionId] = Date.now();
-            }
-            catch (err) {
-                console.log(err);
-            }
+                    playerEntities[sessionId].body.activate();
+                    playerEntities[sessionId].body.setCollisionFlags(2);
+                    //console.log(playerEntities[sessionId].position);
+
+                    playerNextPosition[sessionId] = _player.chassisMesh.position.clone();;
+                    playerNextRotation[sessionId] = _player.chassisMesh.rotation.clone();;
+
+                    lastUpdateTime[sessionId] = Date.now();
+                    lastUpdateTimestamp[sessionId] = Date.now();
+
+                }
+                catch (err) {
+                    console.log(err);
+                }
 
             }
         });
@@ -218,13 +239,27 @@ buildScene(scene);
 
 engine.runRenderLoop(function () {
     let currentTime = Date.now();
-    // for (let sessionId in playerEntities) {
-    //     if (sessionId !== room.sessionId && lastUpdateTime[sessionId]) {
-    //         let alpha = (currentTime - lastUpdateTime[sessionId]) / updateInterval;
-    //         playerEntities[sessionId].chassisMesh.position = BABYLON.Vector3.Lerp(playerPrevPosition[sessionId], playerNextPosition[sessionId], alpha);
-    //         playerEntities[sessionId].chassisMesh.rotationQuaternion = BABYLON.Quaternion.Slerp(playerPrevRotation[sessionId], playerNextRotation[sessionId], alpha);
-    //     }
-    // }
+    for (let sessionId in playerEntities) {
+        if (sessionId !== room.sessionId && lastUpdateTime[sessionId]) {
+            let alpha = (currentTime - lastUpdateTimestamp[sessionId]) / (lastUpdateTimestamp[sessionId] - lastUpdateTime[sessionId]);
+            
+            if (playerPrevPosition[sessionId] && playerNextPosition[sessionId]) {
+                playerEntities[sessionId].chassisMesh.position = BABYLON.Vector3.Lerp(playerPrevPosition[sessionId], playerNextPosition[sessionId], alpha);
+            }
+            if (playerPrevRotation[sessionId] && playerNextRotation[sessionId]) {
+                playerEntities[sessionId].chassisMesh.rotationQuaternion = BABYLON.Quaternion.Slerp(playerPrevRotation[sessionId], playerNextRotation[sessionId], alpha);
+            }
+            
+            for (let i = 0; i < playerEntities[sessionId].wheelMeshes.length; i++) {
+                if (playerPrevPosition[sessionId][i] && playerNextPosition[sessionId][i]) {
+                    playerEntities[sessionId].wheelMeshes[i].position = BABYLON.Vector3.Lerp(playerPrevPosition[sessionId][i], playerNextPosition[sessionId][i], alpha);
+                }
+                if (playerPrevRotation[sessionId][i] && playerNextRotation[sessionId][i]) {
+                    playerEntities[sessionId].wheelMeshes[i].rotationQuaternion = BABYLON.Quaternion.Slerp(playerPrevRotation[sessionId][i], playerNextRotation[sessionId][i], alpha);
+                }
+            }
+        }
+    }
     scene.render();
 });
 // Watch for browser/canvas resize events
